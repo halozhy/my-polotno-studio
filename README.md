@@ -7,3 +7,7 @@ Design Editor made with [Polotno SDK](https://polotno.com/). It several customiz
 ### Found a bug? Or want to suggest a feature?
 
 Just create an issues in this repository!
+
+### vite-pwa 相关
+
+测试pwa的离线功能，需要build之后在preview模式下才能测试
