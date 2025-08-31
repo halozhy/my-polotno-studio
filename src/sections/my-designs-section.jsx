@@ -9,7 +9,7 @@ import {
   Spinner,
   Popover,
 } from '@blueprintjs/core';
-import { DocumentOpen, Trash, More } from '@blueprintjs/icons';
+import { DocumentOpen, Trash, More, Upload } from '@blueprintjs/icons';
 
 import { CloudWarning } from '../cloud-warning';
 
@@ -17,6 +17,13 @@ import { SectionTab } from 'polotno/side-panel';
 import FaFolder from '@meronex/icons/fa/FaFolder';
 import { useProject } from '../project';
 import * as api from '../api';
+import { getImageSize } from 'polotno/utils/image';
+import { pxToUnitRounded, unitToPx } from 'polotno/utils/unit';
+
+// import { listAssets, uploadAsset, deleteAsset } from '../api';
+import { dataURLtoBlob } from '../blob';
+
+const MIN_PX = 10;
 
 const DesignCard = observer(({ design, store, onDelete }) => {
   const [loading, setLoading] = React.useState(false);
@@ -139,6 +146,125 @@ export const MyDesignsPanel = observer(({ store }) => {
     }
   });
 
+  const applyResize = (unitW = w, unitH = h) => {
+    const widthPx = unitToPx({
+      unitVal: unitW,
+      unit: store.unit,
+      dpi: store.dpi,
+    });
+    const heightPx = unitToPx({
+      unitVal: unitH,
+      unit: store.unit,
+      dpi: store.dpi,
+    });
+    if (widthPx >= MIN_PX && heightPx >= MIN_PX){
+      store.setSize(widthPx, heightPx, true);
+    }
+  };
+
+  function getType(file) {
+    const { type } = file;
+    if (type.indexOf('svg') >= 0) {
+      return 'svg';
+    }
+    if (type.indexOf('image') >= 0) {
+      return 'image';
+    }
+    if (type.indexOf('video') >= 0) {
+      return 'video';
+    }
+    return 'image';
+  }
+
+  const getImageFilePreview = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target.result;
+        // now we need to render that image into smaller canvas and get data url
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 200;
+          canvas.height = (200 * img.height) / img.width;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL());
+        };
+        img.src = url;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const getImageFileBase64 = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target.result;
+        // now we need to render that image into smaller canvas and get data url
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL());
+        };
+        img.src = url;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleCreateFromImage = async (e) => {
+    // #1 上传图片
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const type = getType(file);
+    let previewDataURL = '';
+    previewDataURL = await getImageFilePreview(file);
+    const preview = dataURLtoBlob(previewDataURL);
+    // await api.uploadAsset({ file, preview, type });
+    
+    const url = URL.createObjectURL(file);
+    const fileBlob = dataURLtoBlob(previewDataURL);
+    let fileBase64 = "";
+    getImageFileBase64(file).then((result)=>{
+      console.log(result);
+      fileBase64 = result;
+    })
+    
+    // console.log(fileBase64);
+    
+    
+    // #2 创建新工程
+    await project.createNewDesign(file.name);
+    loadDesigns();
+
+    // #3 新工程缩放到图片大小
+    // 获取图片尺寸
+    const { width, height } = await getImageSize(url);
+    // 缩放
+    store.setUnit({ unit:'px', dpi: store.dpi });
+    applyResize(width, height);
+
+    // #4 导入图片
+    store.activePage.addElement({
+      type: 'image',
+      src: fileBase64,
+      width,
+      height,
+      x: 0,
+      y: 0,
+    });
+
+    // #5 保存
+    window.project.requestSave();
+  };
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Button
@@ -151,6 +277,29 @@ export const MyDesignsPanel = observer(({ store }) => {
       >
         Create new design
       </Button>
+
+      {/* 从图片创建工程按钮 */}
+      <label htmlFor="create-from-image-input">
+        <Button
+          fill
+          icon={<Upload />}
+          intent="success"
+          style={{ marginTop: '10px' }}
+          onClick={() =>
+            document.getElementById('create-from-image-input')?.click()
+          }
+        >
+          从图片创建工程
+        </Button>
+        <input
+          type="file"
+          id="create-from-image-input"
+          style={{ display: 'none' }}
+          accept="image/*"
+          onChange={handleCreateFromImage}
+        />
+      </label>
+
       {!designsLoadings && !designs.length && (
         <div style={{ paddingTop: '20px', textAlign: 'center', opacity: 0.6 }}>
           You have no saved designs yet...

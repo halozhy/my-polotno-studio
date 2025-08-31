@@ -61,7 +61,7 @@ class Project {
       this.saveTimeout = null;
       // skip autosave if no project opened
       this.save();
-    }, 5000);
+    }, 200);
   }
 
   async firstLoad() {
@@ -160,9 +160,9 @@ class Project {
     await storage.removeItem('polotno-last-design-id');
   }
 
-  async createNewDesign() {
+  async createNewDesign(project_name = 'Untitled Design') {
     await this.clear();
-    this.name = 'Untitled Design';
+    this.name = project_name;
     this.id = '';
     console.log('saving');
     await this.save();
