@@ -4,13 +4,31 @@
   "icons": [
     {
       "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "48x48",
       "type": "image/x-icon"
     },
     {
       "src": "logo.png",
       "type": "image/png",
       "sizes": "128x128"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/studio-polotno-preview.jpg",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/studio-polotno-preview.jpg",
+      "sizes": "1200x630",
+      "type": "image/png"
     }
   ],
   "start_url": ".",
